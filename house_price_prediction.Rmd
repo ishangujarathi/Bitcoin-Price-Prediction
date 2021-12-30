@@ -1,0 +1,199 @@
+---
+title: "bitcoin_prediction"
+author: "Devang"
+date: "12/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(ggplot2)
+library(GGally)
+
+options(repr.plot.width = 12, repr.plot.height = 8)
+
+```
+
+```{r}
+
+data <- read.csv(file = 'data.csv')
+head(data)
+
+```
+
+```{r}
+
+print(paste("Number of records: ", nrow(data)))
+print(paste("Number of features: ", ncol(data)))
+
+```
+
+```{r}
+
+summary(data)
+
+```
+
+```{r}
+
+colnames(data)
+
+```
+
+```{r}
+
+unique(data$city)
+
+```
+
+```{r}
+
+maindf <- data[,c("price","bedrooms","sqft_living","floors",
+                  "sqft_lot", "condition", "view", "yr_built")]
+head(maindf)
+
+```
+
+```{r}
+
+sum(is.na(maindf)) 
+
+```
+
+```{r}
+
+maindf$oldbuilt <- as.integer(format(Sys.Date(), "%Y")) - maindf$yr_built   
+drops <- c("yr_built")
+maindf = maindf[ , !(names(maindf) %in% drops)]
+
+```
+
+```{r}
+
+maindf
+
+```
+
+```{r}
+
+cor(maindf)
+
+```
+
+```{r}
+
+ggcorr(maindf, name="corr", label=T)
+
+```
+
+```{r}
+
+pairs(~bedrooms + sqft_living + floors + condition, data = maindf,
+       main = "Scatterplot Matrix")
+
+```
+
+```{r}
+
+par(mfrow=c(2, 3))  # divide graph area in 2 columns
+boxplot(maindf$bedrooms, main="Bedrooms")
+boxplot(maindf$sqft_living, main="sqft_living")
+boxplot(maindf$floors, main="floors")
+boxplot(maindf$condition, main="condition")
+boxplot(maindf$view, main="view")
+boxplot(maindf$oldbuilt, main="oldbuilt")
+
+
+```
+
+```{r}
+
+library(e1071)
+
+par(mfrow=c(2, 3)) 
+
+plot(density(maindf$bedrooms), main="Density Plot: Bedrooms", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$bedrooms), 2)))  
+polygon(density(maindf$bedrooms), col="green")
+
+plot(density(maindf$sqft_living), main="Density Plot: sqft_living", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$sqft_living), 2)))  
+polygon(density(maindf$sqft_living), col="orange")
+
+plot(density(maindf$sqft_lot), main="Density Plot: sqft_lot", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$sqft_lot), 2)))  
+polygon(density(maindf$sqft_lot), col="green")
+
+plot(density(maindf$condition), main="Density Plot: condition", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$condition), 2)))  
+polygon(density(maindf$condition), col="orange")
+
+plot(density(maindf$floors), main="Density Plot: floors", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$floors), 2)))  
+polygon(density(maindf$floors), col="green")
+
+plot(density(maindf$oldbuilt), main="Density Plot: oldbuilt", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$oldbuilt), 2)))  
+polygon(density(maindf$oldbuilt), col="orange")
+
+```
+
+```{r}
+
+ggplot(maindf,aes(y=price,x=sqft_living)) +
+       geom_point() + 
+        xlim(0, 9000) +
+        ylim(0, 5000000) +
+        geom_smooth(formula = y ~ x,method="lm")
+
+```
+
+```{r}
+
+sn <- sample(1:nrow(maindf), size = nrow(maindf)*0.8)     #
+train_df <- maindf[sn,]             
+test_df <- maindf[-sn,]
+nrow(train_df)
+nrow(test_df)
+
+```
+
+```{r}
+
+head(train_df)
+head(test_df) 
+
+```
+
+```{r}
+
+linearmodel = lm(price~bedrooms + sqft_living + floors + sqft_lot + condition + view + oldbuilt,
+                 data = train_df)
+summary(linearmodel) 
+
+```
+
+```{r}
+
+pred <- predict(linearmodel, newdata = test_df)
+pred <- as.data.frame(pred)
+head(pred)
+
+```
+
+```{r}
+
+rate <- data.frame(test_df$price, pred)
+
+```
+
+```{r}
+
+rate
+
+````

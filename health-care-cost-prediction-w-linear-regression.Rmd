@@ -1,0 +1,207 @@
+---
+title: "Health Care Cost Prediction with Linear Regression Models"
+author: "Ruslan Klymentiev"
+date: "created: 2018-02-26 | updated: `r Sys.Date()`" 
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+    code_folding: hide
+---
+
+*Originally this kernel was created on 26 of February as my first experience with Linear Regression Models. I just decided to rerun it with some minor mistakes fixed.*
+
+<center><img src="http://moneyinc.com/wp-content/uploads/2018/01/healthinsurance01.jpg" width="600"></center>
+
+## Setting up the environment and data import
+```{r import, message=FALSE, warning=FALSE, paged.print=TRUE}
+library(ggplot2)
+library(dplyr)
+library(Hmisc)
+library(cowplot)
+library(WVPlots)
+set.seed(123)
+Data <- read.csv("insurance.csv")
+sample_n(Data, 5)
+```
+
+## Understanding the data
+
+* **Age**: insurance contractor age, years
+
+* **Sex**: insurance contractor gender, [female, male]
+
+* **BMI**: Body mass index, providing an understanding of body, weights that are relatively high or low relative to height, objective index of body weight (kg / m ^ 2) using the ratio of height to weight, ideally 18.5 to 24.9
+<center>![](https://2o42f91vxth73xagf92zhot2-wpengine.netdna-ssl.com/blog/wp-content/uploads/sites/4/2017/07/Chart.jpg)</center>
+
+* **Children**: number of children covered by health insurance / Number of dependents
+
+* **Smoker**: smoking, [yes, no]
+
+* **Region**: the beneficiary's residential area in the US, [northeast, southeast, southwest, northwest]
+
+* **Charges**: Individual medical costs billed by health insurance, $ *#predicted value*
+
+```{r describe, message=FALSE, warning=FALSE, paged.print=TRUE}
+describe(Data)
+```
+
+No missing values at this point in the dataset. 
+
+## Exploratory Data Analysis
+```{r EDA, message=FALSE, warning=FALSE, paged.print=TRUE}
+x <- ggplot(Data, aes(age, charges)) +
+  geom_jitter(color = "blue", alpha = 0.5) +
+    theme_light()
+
+y <- ggplot(Data, aes(bmi, charges)) +
+  geom_jitter(color = "green", alpha = 0.5) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("1. Correlation between Charges and Age / BMI", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+
+x <- ggplot(Data, aes(sex, charges)) +
+  geom_jitter(aes(color = sex), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(Data, aes(children, charges)) +
+  geom_jitter(aes(color = children), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("2. Correlation between Charges and Sex / Children covered by insurance", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+
+x <- ggplot(Data, aes(smoker, charges)) +
+  geom_jitter(aes(color = smoker), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(Data, aes(region, charges)) +
+  geom_jitter(aes(color = region), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("3. Correlation between Charges and Smoker / Region", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+* **Plot 1**: As Age and BMI go up Charges for health insurance also trends up.
+
+* **Plot 2**: No obvious connection between Charges and Age. Charges for insurance with 4-5 chilren covered seems to go down (doesn't make sense, does it?)
+
+* **Plot 3**: Charges for Smokers are higher for non-smokers (no surprise here). No obvious connection between Charges and Region.
+
+## Linear Regression Model
+### Preparation and splitting the data
+```{r prep, message=FALSE, warning=FALSE, paged.print=TRUE}
+n_train <- round(0.8 * nrow(Data))
+train_indices <- sample(1:nrow(Data), n_train)
+Data_train <- Data[train_indices, ]
+Data_test <- Data[-train_indices, ]
+
+formula_0 <- as.formula("charges ~ age + sex + bmi + children + smoker + region")
+```
+
+### Train and Test the Model
+```{r model_0, message=FALSE, warning=FALSE, paged.print=TRUE}
+model_0 <- lm(formula_0, data = Data_train)
+summary(model_0)
+#Saving R-squared
+r_sq_0 <- summary(model_0)$r.squared
+
+#predict data on test set
+prediction_0 <- predict(model_0, newdata = Data_test)
+#calculating the residuals
+residuals_0 <- Data_test$charges - prediction_0
+#calculating Root Mean Squared Error
+rmse_0 <- sqrt(mean(residuals_0^2))
+```
+
+As we can see, summary of a model showed us that some of the variable are not significant (*sex*), while *smoking* seems to have a huge influence on *charges*. Training a model without non-significant variables and check if performance can be improved.
+
+### Train and Test New Model
+```{r model_1, message=FALSE, warning=FALSE, paged.print=TRUE}
+formula_1 <- as.formula("charges ~ age + bmi + children + smoker + region")
+
+model_1 <- lm(formula_1, data = Data_train)
+summary(model_1)
+r_sq_1 <- summary(model_1)$r.squared
+
+prediction_1 <- predict(model_1, newdata = Data_test)
+
+residuals_1 <- Data_test$charges - prediction_1
+rmse_1 <- sqrt(mean(residuals_1^2))
+```
+
+
+### Compare the models
+```{r comparison, message=FALSE, warning=FALSE, paged.print=TRUE}
+print(paste0("R-squared for first model:", round(r_sq_0, 4)))
+print(paste0("R-squared for new model: ", round(r_sq_1, 4)))
+print(paste0("RMSE for first model: ", round(rmse_0, 2)))
+print(paste0("RMSE for new model: ", round(rmse_1, 2)))
+```
+
+As we can see, performance is quite similar between two models so I will keep the new model since it's a little bit simpler.
+
+### Model Performance
+```{r performance, message=FALSE, warning=FALSE, paged.print=TRUE}
+Data_test$prediction <- predict(model_1, newdata = Data_test)
+ggplot(Data_test, aes(x = prediction, y = charges)) + 
+  geom_point(color = "blue", alpha = 0.7) + 
+  geom_abline(color = "red") +
+  ggtitle("Prediction vs. Real values")
+
+Data_test$residuals <- Data_test$charges - Data_test$prediction
+
+ggplot(data = Data_test, aes(x = prediction, y = residuals)) +
+  geom_pointrange(aes(ymin = 0, ymax = residuals), color = "blue", alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = 3, color = "red") +
+  ggtitle("Residuals vs. Linear model prediction")
+
+ggplot(Data_test, aes(x = residuals)) + 
+  geom_histogram(bins = 15, fill = "blue") +
+  ggtitle("Histogram of residuals")
+
+GainCurvePlot(Data_test, "prediction", "charges", "Model")
+```
+
+
+We can see the errors in the model are close to zero so model predicts quite well.
+
+### Applying on new data
+
+Let's imagine 3 different people and see what charges on health care will be for them.
+
+1. **Bob**: 19 years old, BMI 27.9, has no children, smokes, from northwest region.
+
+2. **Lisa**: 40 years old, BMI 50, 2 children, doesn't smoke, from southeast region.
+
+3. **John**: 30 years old. BMI 31.2, no children, doesn't smoke, from northeast region.
+
+```{r new_test, message=FALSE, warning=FALSE, paged.print=TRUE}
+Bob <- data.frame(age = 19,
+                  bmi = 27.9,
+                  children = 0,
+                  smoker = "yes",
+                  region = "northwest")
+print(paste0("Health care charges for Bob: ", round(predict(model_1, Bob), 2)))
+
+Lisa <- data.frame(age = 40,
+                   bmi = 50,
+                   children = 2,
+                   smoker = "no",
+                   region = "southeast")
+print(paste0("Health care charges for Lisa: ", round(predict(model_1, Lisa), 2)))
+
+John <- data.frame(age = 30,
+                   bmi = 31.2,
+                   children = 0,
+                   smoker = "no",
+                   region = "northeast")
+print(paste0("Health care charges for John: ", round(predict(model_1, John), 2)))
+```

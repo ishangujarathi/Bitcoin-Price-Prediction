@@ -1,0 +1,120 @@
+---
+title: "bitcoin_prediction"
+author: "Devang"
+date: "12/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+BTC<-read.csv("bitcoin_dataset.csv")
+library(caret)
+
+BTC<-na.omit(BTC)
+library(corrplot)
+cor <- cor(BTC[,2:12])
+corrplot(cor, method = "pie")
+
+```
+
+```{r}
+
+plot(BTC$Date, BTC$btc_market_price)
+
+```
+
+```{r}
+
+mod<-lm(btc_market_price~btc_market_cap, data=BTC)
+mod1<-lm(btc_market_price~btc_estimated_transaction_volume_usd, data=BTC)
+summary(mod)
+
+summary(mod1)
+
+```
+
+```{r}
+
+plot(BTC$btc_market_price,BTC$btc_market_cap)
+plot(BTC$btc_market_price,BTC$btc_estimated_transaction_volume_usd)
+
+```
+
+```{r}
+
+set.seed(1)
+train.index<-sample(1:nrow(BTC),0.70*nrow(BTC), replace=FALSE)
+train <- BTC[train.index, ]
+test  <- BTC[-train.index,]
+
+```
+
+```{r}
+
+#Training the model on train dataset and  predicting on test.
+model1 <- lm(btc_market_price~btc_trade_volume , train)
+summary(model1)
+p1 <- predict(model1,test)
+head(p1)
+error1 <- p1 - test[["btc_market_price"]]
+sqrt(mean(error1^2))
+plot(p1)
+#RMSE=510.7136
+
+```
+
+```{r}
+
+model2 <- lm(btc_market_price~btc_market_cap, train)
+summary(model2)
+p2 <- predict(model2,test)
+head(p2)
+error2 <- p2 - test[["btc_market_price"]]
+sqrt(mean(error2^2))
+plot(p2)
+
+```
+
+```{r}
+
+library(FactoMineR)
+pc1<-PCA(BTC[,2:24],scale.unit = TRUE, ncp = 23, graph = TRUE)
+summary(pc1)
+a<-dimdesc(pc1,axes = c(1:2))
+a$Dim.1
+a$Dim.2
+
+```
+
+```{r}
+
+pc<-prcomp(BTC[,c("btc_market_price","btc_miners_revenue")], center = T, scale=T)
+summary(pc)
+head(pc$x)
+
+```
+
+```{r}
+
+model3<-lm(btc_market_price~btc_n_transactions_total, data=BTC)
+summary(model3)
+p3 <- predict(model3,test)
+error3 <- p3 - test[["btc_market_price"]]
+sqrt(mean(error3^2))
+
+```
+
+```{r}
+
+model4<-lm(btc_market_price~btc_n_transactions_total+btc_avg_block_size+btc_difficulty+btc_output_volume, data=BTC)
+summary(model4)
+p4 <- predict(model4,test)
+error4 <- p4 - test[["btc_market_price"]]
+sqrt(mean(error4^2))
+
+```
