@@ -1,17 +1,124 @@
 ---
-title: "Health Care Cost Prediction with Linear Regression Models"
-author: "Ruslan Klymentiev"
-date: "created: 2018-02-26 | updated: `r Sys.Date()`" 
-output:
-  html_document:
-    theme: cerulean
-    toc: yes
-    code_folding: hide
+title: "DS_CP"
+author: "Devang"
+date: "1/3/2022"
+output: html_document
 ---
 
-*Originally this kernel was created on 26 of February as my first experience with Linear Regression Models. I just decided to rerun it with some minor mistakes fixed.*
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-<center><img src="http://moneyinc.com/wp-content/uploads/2018/01/healthinsurance01.jpg" width="600"></center>
+## Macroeconomic Trends Prediction
+
+## Trend 1 : Bitcoin Price Prediction
+
+```{r}
+
+BTC<-read.csv("bitcoin_dataset.csv")
+library(caret)
+
+BTC<-na.omit(BTC)
+library(corrplot)
+cor <- cor(BTC[,2:12])
+corrplot(cor, method = "pie")
+
+```
+
+```{r}
+
+mod<-lm(btc_market_price~btc_market_cap, data=BTC)
+mod1<-lm(btc_market_price~btc_estimated_transaction_volume_usd, data=BTC)
+summary(mod)
+
+summary(mod1)
+
+```
+
+```{r}
+
+plot(BTC$btc_market_price,BTC$btc_market_cap)
+plot(BTC$btc_market_price,BTC$btc_estimated_transaction_volume_usd)
+
+```
+
+```{r}
+
+set.seed(1)
+train.index<-sample(1:nrow(BTC),0.70*nrow(BTC), replace=FALSE)
+train <- BTC[train.index, ]
+test  <- BTC[-train.index,]
+
+```
+
+```{r}
+
+# Training the model on train dataset and  predicting on test.
+
+model1 <- lm(btc_market_price~btc_trade_volume , train)
+summary(model1)
+p1 <- predict(model1,test)
+head(p1)
+error1 <- p1 - test[["btc_market_price"]]
+sqrt(mean(error1^2))
+plot(p1)
+
+# RMSE=510.7136
+
+```
+
+```{r}
+
+model2 <- lm(btc_market_price~btc_market_cap, train)
+summary(model2)
+p2 <- predict(model2,test)
+head(p2)
+error2 <- p2 - test[["btc_market_price"]]
+sqrt(mean(error2^2))
+plot(p2)
+
+```
+
+```{r}
+
+library(FactoMineR)
+pc1<-PCA(BTC[,2:24],scale.unit = TRUE, ncp = 23, graph = TRUE)
+summary(pc1)
+a<-dimdesc(pc1,axes = c(1:2))
+a$Dim.1
+a$Dim.2
+
+```
+
+```{r}
+
+pc<-prcomp(BTC[,c("btc_market_price","btc_miners_revenue")], center = T, scale=T)
+summary(pc)
+head(pc$x)
+
+```
+
+```{r}
+
+model3<-lm(btc_market_price~btc_n_transactions_total, data=BTC)
+summary(model3)
+p3 <- predict(model3,test)
+error3 <- p3 - test[["btc_market_price"]]
+sqrt(mean(error3^2))
+
+```
+
+```{r}
+
+model4<-lm(btc_market_price~btc_n_transactions_total+btc_avg_block_size+btc_difficulty+btc_output_volume, data=BTC)
+summary(model4)
+p4 <- predict(model4,test)
+error4 <- p4 - test[["btc_market_price"]]
+sqrt(mean(error4^2))
+
+```
+
+## Trend 2 - Healthcare Finances Prediction
 
 ## Setting up the environment and data import
 ```{r import, message=FALSE, warning=FALSE, paged.print=TRUE}
@@ -25,30 +132,8 @@ Data <- read.csv("insurance.csv")
 sample_n(Data, 5)
 ```
 
-## Understanding the data
-
-* **Age**: insurance contractor age, years
-
-* **Sex**: insurance contractor gender, [female, male]
-
-* **BMI**: Body mass index, providing an understanding of body, weights that are relatively high or low relative to height, objective index of body weight (kg / m ^ 2) using the ratio of height to weight, ideally 18.5 to 24.9
-<center>![](https://2o42f91vxth73xagf92zhot2-wpengine.netdna-ssl.com/blog/wp-content/uploads/sites/4/2017/07/Chart.jpg)</center>
-
-* **Children**: number of children covered by health insurance / Number of dependents
-
-* **Smoker**: smoking, [yes, no]
-
-* **Region**: the beneficiary's residential area in the US, [northeast, southeast, southwest, northwest]
-
-* **Charges**: Individual medical costs billed by health insurance, $ *#predicted value*
-
-```{r describe, message=FALSE, warning=FALSE, paged.print=TRUE}
-describe(Data)
-```
-
-No missing values at this point in the dataset. 
-
 ## Exploratory Data Analysis
+
 ```{r EDA, message=FALSE, warning=FALSE, paged.print=TRUE}
 x <- ggplot(Data, aes(age, charges)) +
   geom_jitter(color = "blue", alpha = 0.5) +
@@ -205,3 +290,193 @@ John <- data.frame(age = 30,
                    region = "northeast")
 print(paste0("Health care charges for John: ", round(predict(model_1, John), 2)))
 ```
+
+## Trend 3 - House Price Prediction
+
+```{r}
+
+library(ggplot2)
+library(GGally)
+
+options(repr.plot.width = 12, repr.plot.height = 8)
+
+```
+
+```{r}
+
+data <- read.csv(file = 'data.csv')
+head(data)
+
+```
+
+```{r}
+
+print(paste("Number of records: ", nrow(data)))
+print(paste("Number of features: ", ncol(data)))
+
+```
+
+```{r}
+
+summary(data)
+
+```
+
+```{r}
+
+colnames(data)
+
+```
+
+```{r}
+
+unique(data$city)
+
+```
+
+```{r}
+
+maindf <- data[,c("price","bedrooms","sqft_living","floors",
+                  "sqft_lot", "condition", "view", "yr_built")]
+head(maindf)
+
+```
+
+```{r}
+
+sum(is.na(maindf)) 
+
+```
+
+```{r}
+
+maindf$oldbuilt <- as.integer(format(Sys.Date(), "%Y")) - maindf$yr_built   
+drops <- c("yr_built")
+maindf = maindf[ , !(names(maindf) %in% drops)]
+
+```
+
+```{r}
+
+maindf
+
+```
+
+```{r}
+
+cor(maindf)
+
+```
+
+```{r}
+
+ggcorr(maindf, name="corr", label=T)
+
+```
+
+```{r}
+
+pairs(~bedrooms + sqft_living + floors + condition, data = maindf,
+       main = "Scatterplot Matrix")
+
+```
+
+```{r}
+
+par(mfrow=c(2, 3))  # divide graph area in 2 columns
+boxplot(maindf$bedrooms, main="Bedrooms")
+boxplot(maindf$sqft_living, main="sqft_living")
+boxplot(maindf$floors, main="floors")
+boxplot(maindf$condition, main="condition")
+boxplot(maindf$view, main="view")
+boxplot(maindf$oldbuilt, main="oldbuilt")
+
+
+```
+
+```{r}
+
+library(e1071)
+
+par(mfrow=c(2, 3)) 
+
+plot(density(maindf$bedrooms), main="Density Plot: Bedrooms", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$bedrooms), 2)))  
+polygon(density(maindf$bedrooms), col="green")
+
+plot(density(maindf$sqft_living), main="Density Plot: sqft_living", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$sqft_living), 2)))  
+polygon(density(maindf$sqft_living), col="orange")
+
+plot(density(maindf$sqft_lot), main="Density Plot: sqft_lot", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$sqft_lot), 2)))  
+polygon(density(maindf$sqft_lot), col="green")
+
+plot(density(maindf$condition), main="Density Plot: condition", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$condition), 2)))  
+polygon(density(maindf$condition), col="orange")
+
+plot(density(maindf$floors), main="Density Plot: floors", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$floors), 2)))  
+polygon(density(maindf$floors), col="green")
+
+plot(density(maindf$oldbuilt), main="Density Plot: oldbuilt", ylab="Frequency",
+     sub=paste("Skewness:", round(e1071::skewness(maindf$oldbuilt), 2)))  
+polygon(density(maindf$oldbuilt), col="orange")
+
+```
+
+```{r}
+
+ggplot(maindf,aes(y=price,x=sqft_living)) +
+       geom_point() + 
+        xlim(0, 9000) +
+        ylim(0, 5000000) +
+        geom_smooth(formula = y ~ x,method="lm")
+
+```
+
+```{r}
+
+sn <- sample(1:nrow(maindf), size = nrow(maindf)*0.8)     #
+train_df <- maindf[sn,]             
+test_df <- maindf[-sn,]
+nrow(train_df)
+nrow(test_df)
+
+```
+
+```{r}
+
+head(train_df)
+head(test_df) 
+
+```
+
+```{r}
+
+linearmodel = lm(price~bedrooms + sqft_living + floors + sqft_lot + condition + view + oldbuilt,
+                 data = train_df)
+summary(linearmodel) 
+
+```
+
+```{r}
+
+pred <- predict(linearmodel, newdata = test_df)
+pred <- as.data.frame(pred)
+head(pred)
+
+```
+
+```{r}
+
+rate <- data.frame(test_df$price, pred)
+
+```
+
+```{r}
+
+rate
+
+````
