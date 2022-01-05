@@ -224,8 +224,8 @@ ggplot(Data_test, aes(x = residuals)) +
 GainCurvePlot(Data_test, "prediction", "charges", "Model")
 ```
 
-We can see the errors in the model are close to zero so model predicts quite well.
-### Applying on new data
+## We can see the errors in the model are close to zero so model predicts quite well.
+
 ## Trend 3 - House Price Prediction
 
 ```{r}
@@ -267,10 +267,6 @@ sum(is.na(maindf))
 ```
 
 ```{r}
-maindf
-```
-
-```{r}
 cor(maindf)
 ```
 
@@ -281,16 +277,6 @@ ggcorr(maindf, name="corr", label=T)
 ```{r}
 pairs(~bedrooms + sqft_living + floors + condition, data = maindf,
        main = "Scatterplot Matrix")
-```
-
-```{r}
-par(mfrow=c(2, 3))  # divide graph area in 2 columns
-boxplot(maindf$bedrooms, main="Bedrooms")
-boxplot(maindf$sqft_living, main="sqft_living")
-boxplot(maindf$floors, main="floors")
-boxplot(maindf$condition, main="condition")
-boxplot(maindf$view, main="view")
-boxplot(maindf$oldbuilt, main="oldbuilt")
 ```
 
 ```{r}
@@ -318,9 +304,7 @@ plot(density(maindf$floors), main="Density Plot: floors", ylab="Frequency",
      sub=paste("Skewness:", round(e1071::skewness(maindf$floors), 2)))  
 polygon(density(maindf$floors), col="green")
 
-plot(density(maindf$oldbuilt), main="Density Plot: oldbuilt", ylab="Frequency",
-     sub=paste("Skewness:", round(e1071::skewness(maindf$oldbuilt), 2)))  
-polygon(density(maindf$oldbuilt), col="orange")
+
 ```
 
 ```{r}
@@ -345,7 +329,7 @@ head(test_df)
 ```
 
 ```{r}
-linearmodel = lm(price~bedrooms + sqft_living + floors + sqft_lot + condition + view + oldbuilt,
+linearmodel = lm(price~bedrooms + sqft_living + floors + sqft_lot + condition + view,
                  data = train_df)
 summary(linearmodel) 
 ```
@@ -359,7 +343,3 @@ head(pred)
 ```{r}
 rate <- data.frame(test_df$price, pred)
 ```
-
-```{r}
-rate
-````
